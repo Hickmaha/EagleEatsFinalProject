@@ -8,8 +8,30 @@
 import SwiftUI
 
 struct LoginView: View {
+    
+    @State private var fullName = ""
+    @State private var email = ""
+    @State private var password = ""
+    
     var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+        LogoView()
+        
+        Spacer()
+        
+        VStack {
+            TextField("Enter Your Full Name", text: $fullName)
+                .textFieldStyle(.roundedBorder)
+            
+            TextField("Enter Your BC Email", text: $email)
+                .textFieldStyle(.roundedBorder)
+            
+            SecureField("Enter Your Password", text: $password)
+                .textFieldStyle(.roundedBorder)
+        }
+        .padding(.horizontal, 20)
+        
+        
+        Spacer()
     }
 }
 

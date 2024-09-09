@@ -9,7 +9,11 @@ import SwiftUI
 
 struct LogoView: View {
     var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+        Image("logo")
+            .resizable()
+            .frame(width: 150, height: 50)
+            .scaledToFit()
+            .padding(7)
     }
 }
 
