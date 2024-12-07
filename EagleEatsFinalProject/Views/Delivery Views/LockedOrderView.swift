@@ -11,17 +11,19 @@ import MapKit
 import FirebaseFirestore
 
 struct LockedOrderView: View {
-    @State private var usedOrder: Order? // Change to optional to handle fetching
     @State var oldOrder: Order
     @State private var passkeyText = ""
     @State private var sheetIsPresented = false
     @State private var position = MapCameraPosition.camera(MapCamera(centerCoordinate: CLLocationCoordinate2D(latitude: 42.33618330773592, longitude: -71.1688687374547), distance: 2500))
     @FocusState private var isFocused
+    @State private var locationManager = LocationManager() // Create an instance of LocationManager
+    @State private var currentLocation: CLLocation?
+    @State private var usedOrder: Order?
     
     // Optional error message state
     @State private var errorMessage: String?
     @FirestoreQuery(collectionPath: "users") var users: [User]
-
+    
     var body: some View {
         NavigationStack {
             VStack {
@@ -155,7 +157,7 @@ struct LockedOrderView: View {
                         VStack {
                             Text("Order Code: " + String(order.passkey))
                                 .font(.largeTitle)
-                                
+                            
                         }
                     } else if order.delivererID == Auth.auth().currentUser?.uid {
                         VStack {
@@ -213,29 +215,57 @@ struct LockedOrderView: View {
                 HomeView()
             }
         }
+        .onChange(of: currentLocation) {
+            Task {
+                if let trackedOrder = usedOrder {
+                    var updatedOrder = trackedOrder
+                    if updatedOrder.delivererID == Auth.auth().currentUser?.uid {
+                        
+                        updatedOrder.delivererLatitude = currentLocation?.coordinate.latitude ?? 0.0
+                        updatedOrder.delivererLongitude = currentLocation?.coordinate.longitude ?? 0.0
+                        let _ = await OrderViewModel.saveOrder(order: updatedOrder)
+                        print(updatedOrder.delivererLatitude)
+                        print(updatedOrder.delivererLongitude)
+                    }
+                }
+            }
+        }
         .onAppear {
+            print("\n")
+            print(oldOrder)
+            // Initialize current location with old order's deliverer coordinates
+            currentLocation = CLLocation(latitude: oldOrder.delivererLatitude, longitude: oldOrder.delivererLongitude)
+            
+            // Fetch order data from Firestore
             if let id = oldOrder.id {
                 fetchOrder(withId: id) // Replace with actual document ID if needed
             }
+            
+            // Set up location manager to receive updates
+            locationManager.locationUpdated = { location in
+                self.currentLocation = location // Update current location when it changes
+                
+                // Optionally update camera position on map based on deliverer's current location
+//                position = .camera(MapCamera(centerCoordinate: location.coordinate, distance: 2500))
+            }
         }
     }
-
     private func fetchOrder(withId id: String) {
         let db = Firestore.firestore()
         let docRef = db.collection("orders").document(id)
-
+        
         // Listen for real-time updates
         docRef.addSnapshotListener { document, error in
             if let error = error {
                 self.errorMessage = "Error getting document: \(error.localizedDescription)"
                 return
             }
-
+            
             guard let document = document, document.exists else {
                 self.errorMessage = "Document does not exist"
                 return
             }
-
+            
             do {
                 self.usedOrder = try document.data(as: Order.self) // Store fetched data in usedOrder
             } catch {

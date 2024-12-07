@@ -20,10 +20,8 @@ struct CreateAccountView: View {
     @State private var password = ""
     @State private var bcIdNumber = ""
     @FocusState private var focusField: Field?
-    @State private var presentSheet = false
-    @State private var alertMessage = ""
     @State private var buttonDisabled = true
-    @State private var showingAlert = false
+    @State private var LoginRegisterVM = LoginRegisterViewModel()
     
     var body: some View {
         NavigationStack {
@@ -75,7 +73,7 @@ struct CreateAccountView: View {
                         .frame(width: 360, height: 20)
                         .padding(5)
                         .onChange(of: fullName) {
-                            enableButtons()
+                            buttonDisabled = LoginRegisterVM.enableButtonsRegister(email: email, password: password, fullName: fullName, bcIdNumber: bcIdNumber)
                         }
                     
                     
@@ -94,7 +92,7 @@ struct CreateAccountView: View {
                         .frame(width: 360, height: 20)
                         .padding()
                         .onChange(of: bcIdNumber) {
-                            enableButtons()
+                            buttonDisabled = LoginRegisterVM.enableButtonsRegister(email: email, password: password, fullName: fullName, bcIdNumber: bcIdNumber)
                         }
                     
                     
@@ -115,7 +113,7 @@ struct CreateAccountView: View {
                         .frame(width: 360, height: 20)
                         .padding(5)
                         .onChange(of: email) {
-                            enableButtons()
+                            buttonDisabled = LoginRegisterVM.enableButtonsRegister(email: email, password: password, fullName: fullName, bcIdNumber: bcIdNumber)
                         }
                     
                     SecureField("Enter Your Password", text: $password)
@@ -134,7 +132,7 @@ struct CreateAccountView: View {
                         .frame(width: 360, height: 20)
                         .padding()
                         .onChange(of: password) {
-                            enableButtons()
+                            buttonDisabled = LoginRegisterVM.enableButtonsRegister(email: email, password: password, fullName: fullName, bcIdNumber: bcIdNumber)
                         }
                     
                 }
@@ -142,7 +140,7 @@ struct CreateAccountView: View {
                 .minimumScaleFactor(0.1)
                 
                 Button {
-                    register()
+                    LoginRegisterVM.register(email: email, password: password, fullName: fullName, bcIdNumber: bcIdNumber)
                 } label: {
                     Text("Create Account")
                         .frame(width: 320, height: 25)
@@ -173,38 +171,12 @@ struct CreateAccountView: View {
             Spacer()
             
         }
-        .alert(alertMessage, isPresented: $showingAlert) {
+        .alert(LoginRegisterVM.alertMessage, isPresented: $LoginRegisterVM.showingAlert) {
             Button("OK", role: .cancel) {}
         }
         .navigationBarBackButtonHidden()
-        .fullScreenCover(isPresented: $presentSheet) {
+        .fullScreenCover(isPresented: $LoginRegisterVM.presentSheet) {
                 HomeView()
-        }
-    }
-    
-    func enableButtons() {
-        let emailIsGood = email.count >= 6 && email.contains("@")
-        let passwordIsGood = password.count >= 6
-        let nameIsGood = fullName.count > 1
-        let bcId = Int(bcIdNumber) ?? 0
-        let bcIdIsGood = bcId > 10000000
-        buttonDisabled = !(emailIsGood && passwordIsGood && bcIdIsGood && nameIsGood)
-    }
-    
-    func register() {
-        Auth.auth().createUser(withEmail: email, password: password) { result, error in
-            if let error = error {
-                print("Registration Error: \(error.localizedDescription)")
-                alertMessage = "Registration Error: \(error.localizedDescription)"
-                showingAlert = true
-            } else {
-                Task {
-                    let user = User(fullName: fullName, bcIdNumber: Int(bcIdNumber) ?? 0, userId: Auth.auth().currentUser?.uid ?? "")
-                    print("Registration Success!")
-                    let id = await   LoginRegisterViewModel.saveUser(user: user)
-                    presentSheet = true
-                }
-            }
         }
     }
 }

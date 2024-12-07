@@ -8,17 +8,17 @@
 import SwiftUI
 import FirebaseFirestore
 struct ConfirmOrderView: View {
-    @State var order: Order
     @State private var sheetIsPresented = false
     @State private var fee = 3.00
+    @State var OrderVM: OrderViewModel
     
 
     var body: some View {
         NavigationStack {
             List {
-                ForEach(Array(countUniqueItems(items: order.items).keys.sorted()), id: \.self) { itemName in
-                    if let item = order.items.first(where: { $0.name == itemName }) {
-                        let count = countUniqueItems(items: order.items)[itemName] ?? 0
+                ForEach(Array(OrderVM.countUniqueItems(items: OrderVM.order.items).keys.sorted()), id: \.self) { itemName in
+                    if let item = OrderVM.order.items.first(where: { $0.name == itemName }) {
+                        let count = OrderVM.countUniqueItems(items: OrderVM.order.items)[itemName] ?? 0
                         let totalPrice = Double(count) * item.price
                         HStack {
                             Text("\(count) x")
@@ -43,7 +43,7 @@ struct ConfirmOrderView: View {
                 HStack {
                     Spacer()
                     Text("Food:")
-                    Text("$\(order.total, specifier: "%.2f")")
+                    Text("$\(OrderVM.order.total, specifier: "%.2f")")
                         .padding(.trailing)
                 }
                 HStack {
@@ -55,7 +55,7 @@ struct ConfirmOrderView: View {
                 HStack {
                     Spacer()
                     Text("Total:")
-                    Text("$\(order.total+fee, specifier: "%.2f")")
+                    Text("$\(OrderVM.order.total+fee, specifier: "%.2f")")
                         .padding(.trailing)
                 }
             }
@@ -65,9 +65,10 @@ struct ConfirmOrderView: View {
             
             Button("Confirm Order") {
                 Task {
-                    order.total += fee
-                    order.ordered = true
-                    if let docId = await OrderViewModel.saveOrder(order: order) {
+                    print(OrderVM.order)
+                    OrderVM.order.total += fee
+                    OrderVM.order.ordered = true
+                    if let docId = await OrderViewModel.saveOrder(order: OrderVM.order) {
                         print(docId)
                     }
                 }
@@ -75,35 +76,24 @@ struct ConfirmOrderView: View {
             .buttonStyle(.borderedProminent)
             .foregroundStyle(.goldBackground)
             .tint(.maroonBackground)
-            .onChange(of: order.ordered) {
+            .onChange(of: OrderVM.order.ordered) {
                 sheetIsPresented.toggle()
             }
         }
         .padding()
         .fullScreenCover(isPresented: $sheetIsPresented) {
             NavigationStack {
-                LockedOrderView(oldOrder: order)
+                LockedOrderView(oldOrder: OrderVM.order)
             }
         }
+        
 
     }
 
     
-    private func countUniqueItems(items: [Item]) -> [String: Int] {
-        var itemCounts: [String: Int] = [:]
-        
-        for item in items {
-            if let count = itemCounts[item.name] {
-                itemCounts[item.name] = count + 1
-            } else {
-                itemCounts[item.name] = 1
-            }
-        }
-        
-        return itemCounts
-    }
+    
 }
 
 #Preview {
-    ConfirmOrderView(order: Order())
+    ConfirmOrderView(OrderVM: OrderViewModel())
 }

@@ -15,18 +15,17 @@ struct OrderView: View {
     @FirestoreQuery(collectionPath: "items") var items: [Item]
     @FirestoreQuery(collectionPath: "dorms") var dorms: [Dorm]
     @State var diningHall: DiningHall
-    @State var order: Order
     @State private var selectedDorm: DormEnum = .None
     @Environment(\.dismiss) private var dismiss
     @State private var fee = 3.00
-    @State private var showAlert = false
+    @State var OrderVM: OrderViewModel
     
     var body: some View {
         NavigationStack {
             VStack {
                 HStack {
                     
-                    Text(order.dorm.name == "None" ? "Choose Your Dorm: " : "Dorm:")
+                    Text(OrderVM.order.dorm.name == "None" ? "Choose Your Dorm: " : "Dorm:")
                     
                     Spacer()
                     
@@ -36,9 +35,9 @@ struct OrderView: View {
                             if let assignedDorm = dorms.first(where: { dorm in
                                 dorm.name.contains("\(selectedDorm.rawValue.capitalized)")
                             }) {
-                                order.dorm = assignedDorm
+                                OrderVM.order.dorm = assignedDorm
                             }
-                            print(order)
+                            print(OrderVM.order)
                         }
                 }
                 .padding(.horizontal)
@@ -55,7 +54,7 @@ struct OrderView: View {
                                     .padding(.trailing)
                                 
                                 Button{
-                                    deleteItem(item: item)
+                                    OrderVM.deleteItem(item: item)
                                 } label: {
                                     Image(systemName: "minus.circle")
                                         .foregroundStyle(.goldBackground)
@@ -63,7 +62,7 @@ struct OrderView: View {
                                 .buttonStyle(BorderlessButtonStyle())
                                 
                                 Button{
-                                    addItem(item: item)
+                                    OrderVM.addItem(item: item)
                                 } label: {
                                     Image(systemName: "plus.circle")
                                         .foregroundStyle(.goldBackground)
@@ -77,11 +76,11 @@ struct OrderView: View {
                 
                 
                 NavigationLink {
-                    ConfirmOrderView(order: order)
+                    ConfirmOrderView(OrderVM: OrderVM)
                 } label: {
-                    if order.items.count > 0 && order.dorm.name != "None" {
-                        Text("Order \(order.items.count) items")
-                    } else if order.dorm.name == "None"{
+                    if OrderVM.order.items.count > 0 && OrderVM.order.dorm.name != "None" {
+                        Text("Order \(OrderVM.order.items.count) items")
+                    } else if OrderVM.order.dorm.name == "None"{
                         Text("Choose your Dorm")
                     } else {
                         Text("Add items")
@@ -90,22 +89,22 @@ struct OrderView: View {
                 .buttonStyle(.borderedProminent)
                 .tint(.maroonBackground)
                 .foregroundStyle(.goldBackground)
-                .disabled(order.items.count == 0 || order.dorm.name == "None")
+                .disabled(OrderVM.order.items.count == 0 || OrderVM.order.dorm.name == "None")
                 
                 
             }
-            .navigationTitle(order.diningHall.name)
+            .navigationTitle(OrderVM.order.diningHall.name)
             .toolbar{
                 ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink {
                         
-                        ConfirmOrderView(order: order)
+                        ConfirmOrderView(OrderVM: OrderVM)
                     } label: {
                         HStack {
                             Image(systemName: "takeoutbag.and.cup.and.straw")
                                 .foregroundStyle(.goldBackground)
                             
-                            if order.items.count > 0 {
+                            if OrderVM.order.items.count > 0 {
                                 ZStack {
                                     Circle()
                                         .foregroundStyle(.maroonBackground)
@@ -113,7 +112,7 @@ struct OrderView: View {
                                         .frame(width: 15, height: 15)
                                         .offset(x: -10, y: -10)
                                     
-                                    Text("\(order.items.count)")
+                                    Text("\(OrderVM.order.items.count)")
                                         .font(.caption2)
                                         .bold()
                                         .offset(x: -10, y: -10)
@@ -129,64 +128,30 @@ struct OrderView: View {
                         }
                         
                     }
-                    .disabled(order.items.count == 0 || order.dorm.name == "None")
+                    .disabled(OrderVM.order.items.count == 0 || OrderVM.order.dorm.name == "None")
                 }
             }
             .padding()
         }
         .onAppear{
-            if order.items.isEmpty {
-                order = Order()
+            if OrderVM.order.items.isEmpty {
+                OrderVM.order = Order()
             }
-            order.userID = Auth.auth().currentUser?.uid ?? "n/a"
-            order.diningHall = diningHall
+            OrderVM.order.userID = Auth.auth().currentUser?.uid ?? "n/a"
+            OrderVM.order.diningHall = diningHall
         }
-        .alert("No More Than 5 Items In An Order", isPresented: $showAlert) {
+        .alert("No More Than 5 Items In An Order", isPresented: $OrderVM.showAlert) {
             Button("Dismiss", role: .cancel) {}
         }
-    }
-    
-    func addItem(item: Item) {
-        if order.items.count < 5 {
-            var newItem = item
-            newItem.number = order.items.count + 1
-            order.items.append(newItem)
-            
-            var total = 0.0
-            for thing in order.items {
-                total += thing.price
-            }
-            order.total = total
-            print(order.items, order.userID, order.total)
-            print("\n")
-        } else {
-            showAlert.toggle()
+        .onDisappear{
+            OrderVM.order.userID = Auth.auth().currentUser?.uid ?? "n/a"
+            print(OrderVM.order)
         }
-    }
-    
-    func deleteItem(item: Item) {
-        if let index = order.items.firstIndex(where: { $0.name == item.name }) {
-            order.items.remove(at: index)
-            
-            // Reassign unique numbers to maintain sequential order
-            for (index, var item) in order.items.enumerated() {
-                item.number = index + 1
-                order.items[index] = item
-            }
-        }
-        
-        var total = 0.0
-        for thing in order.items {
-            total += thing.price
-        }
-        order.total = total
-        print(order.items, order.userID, order.total)
-        print("\n")
     }
 }
 
 #Preview {
     NavigationStack{
-        OrderView(diningHall: DiningHall(name: "The Rat"), order: Order())
+        OrderView(diningHall: DiningHall(name: "The Rat"), OrderVM: OrderViewModel())
     }
 }

@@ -17,12 +17,10 @@ struct LoginView: View {
     @State private var email = ""
     @State private var password = ""
     @FocusState private var focusField: Field?
-    @State private var presentSheet = false
-    @State private var alertMessage = ""
     @State private var buttonDisabled = true
-    @State private var showingAlert = false
     //Query for orders then check to see if the user is in them
     @FirestoreQuery(collectionPath: "orders") var orders: [Order]
+    @State private var LoginRegisterVM = LoginRegisterViewModel()
     
     var body: some View {
         NavigationStack {
@@ -77,7 +75,7 @@ struct LoginView: View {
                         .frame(width: 360, height: 20)
                         .padding(5)
                         .onChange(of: password) {
-                            enableButtons()
+                            buttonDisabled = LoginRegisterVM.enableButtonsLogin(email: email, password: password)
                         }
                     
                     SecureField("Enter Your Password", text: $password)
@@ -95,7 +93,7 @@ struct LoginView: View {
                         .frame(width: 360, height: 20)
                         .padding()
                         .onChange(of: password) {
-                            enableButtons()
+                            buttonDisabled = LoginRegisterVM.enableButtonsLogin(email: email, password: password)
                         }
                     
                     
@@ -104,7 +102,7 @@ struct LoginView: View {
                 .minimumScaleFactor(0.1)
                 
                 Button {
-                    login()
+                    LoginRegisterVM.login(email: email, password: password)
                 } label: {
                     Text("Login")
                         .frame(width: 320, height: 25)
@@ -136,7 +134,7 @@ struct LoginView: View {
             Spacer()
             
         }
-        .alert(alertMessage, isPresented: $showingAlert) {
+        .alert(LoginRegisterVM.alertMessage, isPresented: $LoginRegisterVM.showingAlert) {
             Button("OK", role: .cancel) {}
         }
         .navigationBarBackButtonHidden()
@@ -144,10 +142,10 @@ struct LoginView: View {
             if let user = Auth.auth().currentUser {
                 print("Login Success!")
                 print(user.email ?? "")
-                presentSheet = true
+                LoginRegisterVM.presentSheet = true
             }
         }
-        .fullScreenCover(isPresented: $presentSheet) {
+        .fullScreenCover(isPresented: $LoginRegisterVM.presentSheet) {
             if let userId = Auth.auth().currentUser?.uid {
                 let activeOrder = orders.first { (($0.userID == userId) || ($0.delivererID == userId)) && ($0.delivering || $0.userID == userId)}
                 if let order = activeOrder {
@@ -158,26 +156,6 @@ struct LoginView: View {
             }
         }
         
-    }
-    func enableButtons() {
-        let emailIsGood = email.count >= 6 && email.contains("@")
-        let passwordIsGood = password.count >= 6
-        buttonDisabled = !(emailIsGood && passwordIsGood)
-    }
-    
-    
-    func login() {
-        Auth.auth().signIn(withEmail: email, password: password) {
-            result, error in
-            if let error = error {
-                print("Login Error: \(error.localizedDescription)")
-                alertMessage = "Login Error: \(error.localizedDescription)"
-                showingAlert = true
-            } else {
-                print("Login Success!")
-                presentSheet = true
-            }
-        }
     }
 }
 

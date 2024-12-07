@@ -108,29 +108,5 @@ class OrderViewModel {
         
         return itemCounts
     }
-    
-    func fetchOrder(withId id: String) {
-        let db = Firestore.firestore()
-        let docRef = db.collection("orders").document(id)
-        
-        // Listen for real-time updates
-        docRef.addSnapshotListener { document, error in
-            if let error = error {
-                self.errorMessage = "Error getting document: \(error.localizedDescription)"
-                return
-            }
-            
-            guard let document = document, document.exists else {
-                self.errorMessage = "Document does not exist"
-                return
-            }
-            
-            do {
-                self.order = try document.data(as: Order.self) // Store fetched data in usedOrder
-            } catch {
-                self.errorMessage = "Error decoding document: \(error.localizedDescription)"
-            }
-        }
-    }
 }
 

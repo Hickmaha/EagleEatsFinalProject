@@ -80,11 +80,29 @@ class LoginRegisterViewModel {
                 Task {
                     let user = User(fullName: fullName, bcIdNumber: Int(bcIdNumber) ?? 0, userId: Auth.auth().currentUser?.uid ?? "")
                     print("Registration Success!")
-                    let id = await   LoginRegisterViewModel.saveUser(user: user)
+                    let _ = await   LoginRegisterViewModel.saveUser(user: user)
                     self.presentSheet = true
                 }
             }
         }
     }
+    
+        var isLoading = false
+        var routeOrder = false
+    
+    func checkForActiveOrder(userId: String, orders: [Order], orderVM: OrderViewModel) {
+            isLoading = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                let activeOrder = orders.first { ($0.userID == userId || $0.delivererID == userId) && ($0.delivering || $0.userID == userId) }
+                if let order = activeOrder {
+                    orderVM.order = order
+                    self.routeOrder = true
+                } else {
+                    self.routeOrder = false
+                }
+                self.isLoading = false
+                self.presentSheet = true
+            }
+        }
 }
 

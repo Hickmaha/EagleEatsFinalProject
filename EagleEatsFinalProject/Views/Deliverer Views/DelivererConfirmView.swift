@@ -22,7 +22,7 @@ struct DelivererConfirmView: View {
                         .bold()
                         .padding(.top)
                     
-                    Text("\(order.diningHall.name)")
+                Text("\(order.diningHall.name)")
                         .font(.title2)
                         .padding(.top, 7)
                     
@@ -31,7 +31,7 @@ struct DelivererConfirmView: View {
                         .bold()
                         .padding(.top, 7)
                     
-                    Text("\(order.dorm.name)")
+                Text("\(order.dorm.name)")
                         .font(.title2)
                         .padding(.top, 7)
                     
@@ -91,6 +91,7 @@ struct DelivererConfirmView: View {
             Task{
                 order.displayed = true
                 order.delivererID = Auth.auth().currentUser?.uid ?? ""
+                print(order)
                 let _ = await OrderViewModel.saveOrder(order: order)
             }
         }
